@@ -1,0 +1,9 @@
+== Overview
+Rust is a modern systems programming language that achieves an uncommon combination of memory safety and bare-metal performance. Its lack of a garbage collector, paired with powerful zero-cost abstractions, makes it a natural fit for writing correct, efficient kernel code.
+
+This guide covers the full stack of early-stage OS development: bootloader mechanics, hardware initialization, kernel architecture, as well as testing strategies
+
+== Motivation
+Kernel development sits at the very foundation of software: the point where code meets hardware directly. It has long been a personal passion of mine, and Rust's ownership model makes it an especially compelling tool for this task.
+
+Having written several kernel projects over the years, and having made no shortage of mistakes along the way, I wanted to produce a comprehensive, streamlined resource for anyone looking to start their own OS project. https://github.com/nereusfoundation/nereus-os[Nereus OS], the most recent of those projects, underpins much of the practical knowledge presented here.
