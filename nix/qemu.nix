@@ -14,7 +14,7 @@ pkgs.writeShellApplication {
     OVMF="${pkgs.OVMF.fd}/FV"
 
     # writeable location
-    IMG="$(mktemp -t nereus-boot.XXXXXX.img)"
+    IMG="$(mktemp -t telos-boot.XXXXXX.img)"
     cp "${bootimage}/boot.img" "$IMG"
 
     exec qemu-system-x86_64 \

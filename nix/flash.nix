@@ -4,7 +4,7 @@
 }:
 
 pkgs.writeShellApplication {
-  name = "nereus-flash";
+  name = "telos-flash";
   runtimeInputs = with pkgs; [
     popsicle
   ];
