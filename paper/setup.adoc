@@ -1,6 +1,26 @@
+The companion project for this guide is called *Telos* - a minimal Rust kernel skeleton targeting x86-64.
+Getting it to build requires configuring a nightly Rust toolchain and a small amount of Cargo plumbing; this section walks through both.
+
+=== Nix
+
+If you have the Nix package manager available, a flake is provided that handles toolchain provisioning, image assembly, and QEMU invocation automatically.
+Setting up Nix itself is outside the scope of this guide; see https://nixos.org for more information.
+
+[source,sh]
+----
+nix run               # build everything and launch QEMU
+nix build .#kernel    # build kernel only
+nix build .#loader    # build loader only
+nix build .#bootimage # assemble the boot image
+nix develop           # enter a shell with the correct toolchain
+----
+
+The below section ellaborates on the manual setup of the toolchain and environment if Nix is not used.
+
 === Toolchain
 
-Telos requires a nightly Rust toolchain with the `rust-src` component (needed for `build-std`) and the `x86_64-unknown-uefi` target for the loader.
+Because Telos builds the standard library from source and relies on an unstable Cargo feature (`-Zjson-target-spec`), a nightly toolchain is required.
+The `rust-src` component provides the library source that `build-std` compiles, and the `x86_64-unknown-uefi` target is needed for the loader.
 
 [source,sh]
 ----
@@ -9,7 +29,9 @@ rustup component add rust-src --toolchain nightly
 rustup target add x86_64-unknown-uefi --toolchain nightly
 ----
 
-The workspace is split into two crates — `loader` and `kernel` — each built for a different target:
+=== Project Structure
+
+Telos starts of as a Cargo workspace with two members: `loader`, which runs under UEFI before handing off to the kernel, and `kernel`, which runs on bare metal afterwards.
 
 [source]
 ----
@@ -43,7 +65,7 @@ fn main() -> Status {
 }
 ----
 
-The kernel entry point uses the `sysv64` calling convention and must never return:
+The kernel has no runtime underneath it, so it defines its own entry point and panic handler explicitly:
 
 [source,rust]
 ----
@@ -63,7 +85,10 @@ fn panic(_info: &PanicInfo) -> ! {
 }
 ----
 
-The `.cargo/config.toml` instructs cargo to rebuild the standard library from source:
+=== Cargo Configuration
+
+`.cargo/config.toml` tells Cargo to rebuild the core standard library crates from source rather than using a precompiled target sysroot.
+This is necessary because neither `x86_64-unknown-uefi` nor the custom kernel target ships a prebuilt `core`:
 
 [source,toml]
 ----
@@ -72,7 +97,8 @@ build-std = ["core", "compiler_builtins", "alloc", "panic_abort"]
 build-std-features = ["compiler-builtins-mem"]
 ----
 
-Building the loader targets the standard UEFI triple; the kernel uses a custom target that disables the red zone, floating-point registers, and position-independent code — all requirements for bare-metal kernel execution:
+With that in place, the two crates can be built independently.
+The loader targets the standard UEFI triple; the kernel uses a custom target spec that is required kernel execution:
 
 [source,sh]
 ----
@@ -82,7 +108,8 @@ cargo +nightly build -p kernel -Zjson-target-spec --target kernel/x86_64-unknown
 
 === Boot Image
 
-The firmware expects a FAT32 disk image with the loader placed at `/efi/boot/bootx64.efi` (the default UEFI boot path) and the kernel at `/kernel.elf`.
+UEFI firmware boots from a FAT32 partition and looks for a loader at the well-known path `/efi/boot/bootx64.efi`.
+The kernel is placed at `/kernel.elf` in the root, where the loader will find it at runtime:
 
 [source,sh]
 ----
@@ -95,7 +122,8 @@ mcopy -i boot.img target/x86_64-unknown-telos/debug/kernel.elf ::/kernel.elf
 
 === Running with QEMU
 
-QEMU needs OVMF to emulate UEFI firmware. Obtain `OVMF_CODE.fd` and `OVMF_VARS.fd` from your distribution's OVMF package, then:
+QEMU can emulate a UEFI machine when given an OVMF firmware image.
+`OVMF_CODE.fd` and `OVMF_VARS.fd` are typically available through your distribution's OVMF package:
 
 [source,sh]
 ----
@@ -109,18 +137,4 @@ qemu-system-x86_64 \
   -m 512M
 ----
 
-Serial output is written to `stdio.log`; interrupt logs go to `qemu.log`.
-
-=== Nix
-
-A Nix flake is provided that handles the full build and run pipeline automatically — toolchain, image creation, and QEMU invocation.
-This is outside the scope of this document; see https://nixos.org for more information.
-
-[source,sh]
-----
-nix run              # build and launch QEMU
-nix build .#kernel   # build kernel only
-nix build .#loader   # build loader only
-nix build .#bootimage
-nix develop # enter shell with correct toolchains installed
-----
+Serial output lands in `stdio.log`; interrupt and exception logs go to `qemu.log`.

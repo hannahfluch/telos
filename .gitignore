@@ -1,4 +1,5 @@
 /result
 **/target
 **/*.html
+**/*.pdf
 *.log
