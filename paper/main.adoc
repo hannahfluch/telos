@@ -7,3 +7,6 @@ Hannah Fluch <hannah@diefluchs.at>
 
 == Introduction
 include::introduction.adoc[]
+
+== Setup
+include::setup.adoc[]
