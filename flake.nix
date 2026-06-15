@@ -35,6 +35,8 @@
         rustToolchain = fenixPkgs.combine [
           fenixPkgs.latest.cargo
           fenixPkgs.latest.rustc
+          fenixPkgs.latest.rustfmt
+          fenixPkgs.latest.clippy
           rustSrc
           fenixPkgs.targets.x86_64-unknown-uefi.latest.rust-std
           fenixPkgs.targets.x86_64-unknown-linux-gnu.latest.rust-std
@@ -98,6 +100,13 @@
 
       in
       {
+        # For `nix build` & `nix run`:
+        checks = {
+          "kernel-clippy" = kernel.override { mode = "clippy"; };
+          "loader-clippy" = loader.override { mode = "clippy"; };
+          "kernel-fmt" = kernel.override { mode = "fmt"; };
+          "loader-fmt" = loader.override { mode = "fmt"; };
+        };
 
         packages = {
           default = qemu;
@@ -109,6 +118,7 @@
             bootimage
             ;
         };
+
         # For `nix develop`:
         devShells.default = pkgs.mkShell {
           nativeBuildInputs = [
