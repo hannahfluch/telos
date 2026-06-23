@@ -4,5 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-log = "0.4.32"
-uefi = { version = "0.37.0", features = ["logger", "global_allocator", "alloc", "panic_handler"] }
+x86_64.workspace = true
+log.workspace = true
+thiserror.workspace = true
+framebuf.workspace = true
+uefi = { version = "0.37.0", features = ["global_allocator", "alloc", "panic_handler"] }

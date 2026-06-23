@@ -1,6 +1,7 @@
 = Writing a kernel starter in Rust
 Hannah Fluch <hannah@diefluchs.at>
 :description: Guide to writing a kernel skeleton in Rust
+:source-highlighter: rouge
 :setanchors:
 :toc:
 :url-repo: https://github.com/hannahfluch/telos
@@ -10,3 +11,6 @@ include::introduction.adoc[]
 
 == Setup
 include::setup.adoc[]
+
+== Loader
+include::loader.adoc[]

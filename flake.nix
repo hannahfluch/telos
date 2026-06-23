@@ -68,6 +68,7 @@
               ./Cargo.lock
               ./kernel
               ./loader
+              ./framebuf
             ];
           };
 
@@ -123,6 +124,7 @@
         devShells.default = pkgs.mkShell {
           nativeBuildInputs = [
             rustToolchain
+            pkgs.rubyPackages.rouge
           ];
         };
 

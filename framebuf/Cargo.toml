@@ -1,0 +1,10 @@
+[package]
+name = "framebuf"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+thiserror.workspace = true
+spin.workspace = true
+log.workspace = true
+x86_64.workspace = true

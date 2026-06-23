@@ -1,7 +1,17 @@
 [workspace]
 members = [
+  "framebuf",
   "kernel",
   "loader"
 ]
-
 resolver = "3"
+
+[workspace.dependencies]
+thiserror = { version = "2.0.18", default-features = false }
+anyhow = { version = "1.0.102", default-features = false }
+spin = { version = "0.12.0", default-features = false, features = ["spin_mutex", "once"] }
+x86_64 = "0.15.4" 
+log = "0.4.32"
+framebuf = { path = "./framebuf" }
+
+
