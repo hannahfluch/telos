@@ -1,6 +1,7 @@
-Telos is a Cargo workspace with three crates.
-`loader` is the UEFI application, `kernel` is the freestanding destination, and `framebuf` is a drawing dependency used for early output.
-The boot image additionally contains `font.psf` and `kernel.elf`:
+Telos separates the boot process into three Rust crates.
+The `loader` crate is the program started by UEFI, `kernel` is the program to which it eventually transfers control, and `framebuf` is a dependency crate that handles low-level graphics.
+Keeping these responsibilities separate also lets the loader and kernel use different compilation targets.
+Only the files relevant to this paper are shown below:
 
 [source]
 ----
@@ -21,8 +22,8 @@ telos/
 
 === Toolchain and Targets
 
-The supplied Nix flake is the reproducible path used for the project.
-It provides Rust, the UEFI target, OVMF, QEMU, and the image-building utilities:
+The supplied Nix flake provides a reproducible toolchain as well as OVMF, QEMU, and the utilities needed to create a disk image.
+It exposes the following development commands:
 
 [source,sh]
 ----
@@ -33,40 +34,49 @@ nix run                # build and run the image with QEMU/OVMF
 nix develop            # open the development environment
 ----
 
-The loader uses Rust's standard `x86_64-unknown-uefi` target.
-The kernel instead uses `x86_64-unknown-telos.json`, which is used to compile the kernel to a bootable image with a custom linker script applied.
-The workspace's `.cargo/config.toml` rebuilds `core`, `alloc`, and compiler built-ins, so the build currently requires a nightly compiler and Rust sources.
+The two programs require different targets because they run in different environments.
+The loader uses Rust's built-in `x86_64-unknown-uefi` target, which produces a PE32+ executable that UEFI can start directly.
+The kernel has no firmware or operating-system runtime to target, so `x86_64-unknown-telos.json` describes its bare-metal environment and invokes the custom linker script.
+That script determines the kernel's memory layout and exports `_start` as its entry point.
 
-The two direct Cargo commands are:
+The workspace also rebuilds `core`, `alloc`, and the compiler built-ins through `.cargo/config.toml`.
+This currently requires a nightly compiler with the Rust sources installed.
+
+Inside `nix develop`, the equivalent direct Cargo commands are:
 
 [source,sh]
 ----
-cargo +nightly build -p loader --target x86_64-unknown-uefi
-cargo +nightly build -p kernel -Zjson-target-spec \
+cargo build -p loader --target x86_64-unknown-uefi
+cargo build -p kernel -Zjson-target-spec \
   --target kernel/x86_64-unknown-telos.json
 ----
 
 === Kernel Stub
 
-The kernel deliberately does nothing except provide the symbol used as the handoff target:
+At this stage the kernel only needs to prove that it can be linked with the expected entry symbol.
+It cannot use Rust's standard library because no operating system exists underneath it, and it cannot return because there is no caller to resume.
+The https://wiki.osdev.org/System_V_ABI[System V AMD64 calling convention] gives the loader and kernel an explicit agreement about how a later function argument will be passed:
 
 [source,rust]
 ----
 #![no_std]
 #![no_main]
 
+// Do not mangle `_start`: the linker looks for this exact symbol name.
 #[unsafe(no_mangle)]
 pub extern "sysv64" fn _start() -> ! {
-    loop {}
+    // There is nowhere to return to until the kernel implements shutdown.
+    loop { core::hint::spin_loop(); }
 }
 ----
 
-Later on, it will receive a pointer to boot information passed to it by the bootloader.
+Later, `_start` will accept a pointer to the boot information described in the next chapter.
 
 === Boot Image and QEMU
 
-UEFI removable-media boot expects a FAT filesystem containing the architecture-specific fallback path.
-`nix/img.nix` produces the relevant layout:
+Building the two executables is not enough: the firmware must also be able to find the loader, and the loader must be able to find its input files.
+For removable x86-64 media, UEFI looks for the fallback path `\EFI\BOOT\BOOTX64.EFI` on a FAT filesystem.
+`nix/img.nix` creates that filesystem and copies in the kernel and font:
 
 [source]
 ----
@@ -76,5 +86,5 @@ boot.img (FAT32)
 └── font.psf
 ----
 
-`nix run` starts QEMU with OVMF code and variable images, attaches `boot.img`, and writes serial and CPU-event logs to `stdio.log` and `qemu.log`.
-OVMF follows the same UEFI interfaces as a physical machine, while QEMU makes early faults reproducible and inspectable.
+`nix run` attaches this image to QEMU and uses OVMF as the UEFI firmware.
+It writes serial output to `stdio.log` and CPU-event diagnostics to `qemu.log`, making failures that would simply freeze a physical machine reproducible and inspectable.

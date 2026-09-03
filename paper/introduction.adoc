@@ -58,6 +58,6 @@ Reading virtual address `01x`, for example, accesses physical address `01x`.
 |`03x` |; |- |) |
 |===
 
-UEFI boot services—including protocol discovery, file access, and page allocation—remain available until `ExitBootServices` succeeds.
+UEFI boot services (including protocol discovery, file access, and page allocation) remain available until `ExitBootServices` succeeds.
 Any replacement page tables must preserve access to the loader's active code, stack, data, and required firmware buffers until that transition is complete.
 The OSDev Wiki provides more detail in its https://wiki.osdev.org/EFI[UEFI chapter] and https://wiki.osdev.org/Setting_Up_Long_Mode[Setting Up Long Mode] chapter.

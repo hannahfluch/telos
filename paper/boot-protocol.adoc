@@ -13,6 +13,7 @@ At a high level, the bootloader has to:
 
 === Higher-Half Kernel
 
-Telos places the kernel in the higher half of the virtual address space.
-The linker script of the kernel uses an offset of `0xffff_ffff_8000_0000` and a physical load base of `0x0010_0000`, giving the first kernel address as `0xffff_ffff_8010_0000`.
-This keeps kernel addresses separate from the lower address range that can later be assigned to user programs, while allowing the physical kernel image to occupy ordinary low memory during boot. This is a common choice in kernel development as it can also enable some optimizations.
+Telos places the kernel in the _higher half_: the upper portion of the virtual address space commonly reserved for privileged code.
+Its linker script adds the virtual offset `0xffff_ffff_8000_0000` to the physical load base `0x0010_0000`, so the first kernel byte is addressed virtually as `0xffff_ffff_8010_0000` while residing near the start of physical memory.
+This arrangement keeps kernel addresses separate from the lower range that can later be assigned to user programs.
+It also fits x86-64's `kernel` code model, whose instructions can address code and static data within the uppermost 2 GiB without loading a full 64-bit address for every reference.

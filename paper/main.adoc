@@ -4,16 +4,17 @@ Hannah Fluch <hannah@diefluchs.at>
 :source-highlighter: rouge
 :setanchors:
 :toc:
+:toclevels: 2
 :url-repo: https://github.com/hannahfluch/telos
 
 == Introduction
 include::introduction.adoc[]
 
-== Boot Protocol
-include::boot-protocol.adoc[]
-
 == Project Setup
 include::setup.adoc[]
+
+== Boot Protocol
+include::boot-protocol.adoc[]
 
 == Loader Foundation
 include::loader.adoc[]
