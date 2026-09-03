@@ -8,8 +8,6 @@ pub(crate) enum LoaderError {
     UefiFs(#[from] uefi::fs::Error),
     #[error("FromStr error: {0}")]
     UefiFromStr(#[from] uefi::data_types::FromStrError),
-    #[error("Invalid filename: {0}")]
-    InvalidFile(&'static str),
     #[error("Psf error: {0}")]
     Psf(#[from] PsfParseError),
 }
