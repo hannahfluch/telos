@@ -1,6 +1,6 @@
-= Writing a kernel starter in Rust
+= Writing a Custom x86-64 UEFI Bootloader in Rust
 Hannah Fluch <hannah@diefluchs.at>
-:description: Guide to writing a kernel skeleton in Rust
+:description: Building a UEFI bootloader and custom boot protocol for a minimal x86-64 kernel
 :source-highlighter: rouge
 :setanchors:
 :toc:
@@ -9,8 +9,11 @@ Hannah Fluch <hannah@diefluchs.at>
 == Introduction
 include::introduction.adoc[]
 
-== Setup
+== Boot Protocol
+include::boot-protocol.adoc[]
+
+== Project Setup
 include::setup.adoc[]
 
-== Loader
+== Loader Foundation
 include::loader.adoc[]
