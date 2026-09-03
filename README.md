@@ -2,6 +2,10 @@
 
 Guide on writing a kernel starter in Rust.
 
+This repository covers the guide of writing a basic bootloader with a custom boot protocol for x86-64.
+
+The kernel is a minimal entry stub.
+
 ## Getting Started
 
 ### Prerequisites
