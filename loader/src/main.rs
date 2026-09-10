@@ -3,7 +3,9 @@
 
 use framebuf::{color, logger::Logger, raw::write::RawWriter};
 use log::{debug, info};
-use uefi::{Status, boot::PAGE_SIZE, entry};
+use uefi::{boot::PAGE_SIZE, entry, Status};
+
+use crate::file::elf::Elf;
 
 extern crate alloc;
 
@@ -12,6 +14,7 @@ mod file;
 mod graphics;
 
 const PSF_FILE_NAME: &str = "font.psf";
+const KERNEL_FILE_NAME: &str = "kernel.elf";
 
 #[entry]
 fn main() -> Status {
@@ -31,7 +34,15 @@ fn main() -> Status {
     info!("Hello World!!");
     debug!("Framebuffer: address: {fb_addr:#x}, number of pages: {fb_page_num:#x}");
 
-    // Kernel loading is the next stage; stop here for this milestone.
+    // Load kernel into memory
+    let kernel = Elf::load_kernel(KERNEL_FILE_NAME).unwrap();
+    debug!(
+        "Kernel entry point: {:#x}, number of pages: {:#x}",
+        kernel.entry(),
+        kernel.num_pages()
+    );
+
+    // Setting up a kernel stack is the next stage; stop here for this milestone.
     loop {
         core::hint::spin_loop();
     }

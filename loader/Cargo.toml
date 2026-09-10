@@ -9,3 +9,4 @@ log.workspace = true
 thiserror.workspace = true
 framebuf.workspace = true
 uefi = { version = "0.37.0", features = ["global_allocator", "alloc", "panic_handler"] }
+goblin = { version = "0.10.7", features = ["elf64", "elf32", "endian_fd"], default-features=false }
