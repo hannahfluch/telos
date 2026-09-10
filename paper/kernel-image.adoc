@@ -1,0 +1,155 @@
+The next step that the loader completes is loading the kernel ELF's code and data into memory.
+The kernel ELF (Executable and Linkable Format) describes both the program's entry point and how its contents must be arranged in memory.
+
+[source,rust]
+----
+let data = file::get_file_data(filename)?;
+let data = data.as_slice();
+let elf = goblin::elf::Elf::parse(data)?;
+----
+
+=== Validating the Image
+
+The loader accepts only a little-endian, 64-bit x86-64 executable (`ET_EXEC`).
+
+[source,rust]
+----
+if !elf.is_64
+    || !elf.little_endian
+    || elf.header.e_machine != EM_X86_64
+    || elf.header.e_type != ET_EXEC
+{
+    return Err(KernelLoadError::InvalidFormat.into());
+}
+----
+
+It walks the ELF program headers, processing nonempty `PT_LOAD` segments: the regions that must be present in memory when execution begins.
+These segments can contain several sections, so the loader does not need to find `.text` or `.data` by name.
+
+[source,rust]
+----
+for pheader in &elf.program_headers {
+    if pheader.p_type != PT_LOAD || pheader.p_memsz == 0 {
+        continue;
+    }
+    // Segment validation follows here (excerpts below).
+}
+----
+
+For each segment, `p_offset` locates its bytes in the file, `p_filesz` gives their count, and `p_memsz` gives the required size in memory.
+`p_paddr` specifies the physical destination; `p_vaddr` specifies the address used during execution.
+The current kernel's linker output uses identical physical and virtual addresses, due to the identity-mapping explained earlier.
+
+Before allocating memory, the loader checks that file contents fit within the segment's memory size and that each file range lies within the input buffer.
+It uses `checked_add` for range endpoints so that overflowing addresses produce an error.
+
+[source,rust]
+----
+if pheader.p_filesz > pheader.p_memsz {
+    return Err(KernelLoadError::InvalidSegment.into());
+}
+let file_end = pheader
+    .p_offset
+    .checked_add(pheader.p_filesz)
+    .ok_or(KernelLoadError::InvalidSegment)?;
+// Physical and virtual endpoints use the same checked-add pattern.
+if file_end > data.len() as u64 {
+    return Err(KernelLoadError::InvalidSegment.into());
+}
+----
+
+It also requires at least one loadable segment and an entry point inside a segment marked executable by `PF_X`.
+Parsing failures and these validation failures propagate through the shared `LoaderError` as `Goblin` and `KernelLoad` errors, respectively.
+
+[source,rust]
+----
+// Inside the validation loop:
+has_loadable_segment = true;
+dest_start = dest_start.min(pheader.p_paddr);
+dest_end = dest_end.max(memory_end);
+if pheader.p_flags & PF_X != 0
+    && (pheader.p_vaddr..virtual_end).contains(&elf.entry)
+{
+    entry_is_executable = true;
+}
+// After the loop:
+if !has_loadable_segment {
+    return Err(KernelLoadError::NoLoadableSegments.into());
+}
+if !entry_is_executable {
+    return Err(KernelLoadError::InvalidEntryPoint.into());
+}
+----
+
+=== Allocating and Copying Segments
+
+The lowest physical segment address and highest segment end define one allocation covering the image, including any gaps.
+The loader rounds these boundaries outward to 4 KiB pages and computes `num_pages` from the resulting length:
+
+[source,rust]
+----
+let page_mask = PAGE_SIZE as u64 - 1;
+dest_start &= !page_mask;
+dest_end = dest_end
+    .checked_add(page_mask)
+    .ok_or(KernelLoadError::InvalidSegment)?
+    & !page_mask;
+let num_pages = usize::try_from((dest_end - dest_start) / PAGE_SIZE as u64)
+    .map_err(|_| KernelLoadError::InvalidSegment)?;
+
+let allocation = boot::allocate_pages(
+    boot::AllocateType::Address(dest_start),
+    MemoryType::LOADER_CODE,
+    num_pages,
+)?;
+----
+
+`Address` requests the exact range specified by the image; loading fails if UEFI cannot reserve it.
+Since this is a basic intro-loader, it does not relocate the executable to another address.
+`LOADER_CODE` records the allocation's purpose in the firmware memory map; it does not establish page-table permissions.
+
+After allocation, a second pass copies each segment's file bytes to `p_paddr` and fills the remainder up to `p_memsz` with zeroes.
+This initializes regions such as `.bss`, which reserve memory without storing all their zero bytes in the file.
+The temporary file buffer can then be dropped while the loaded image remains allocated.
+
+[source,rust]
+----
+// Inside the second loop, for each nonempty PT_LOAD segment:
+let offset = pheader.p_offset as usize;
+let size_in_file = pheader.p_filesz as usize;
+let size_in_memory = pheader.p_memsz as usize;
+
+// SAFETY: The destination is reserved and identity-mapped.
+let dest = unsafe {
+    slice::from_raw_parts_mut(pheader.p_paddr as *mut u8, size_in_memory)
+};
+dest[..size_in_file].copy_from_slice(&data[offset..offset + size_in_file]);
+dest[size_in_file..].fill(0);
+----
+
+`Elf` returns the entry address, allocation base, and page count.
+
+[source,rust]
+----
+Ok(Elf {
+    entry_point: elf.entry,
+    file_base: allocation.as_ptr() as u64,
+    num_pages,
+})
+----
+
+The call to the kernel setup function is also added to the main function:
+[source,rust]
+----
+// ...
+const KERNEL_FILE_NAME: &str = "kernel.elf";
+// ... inside main:
+// Load kernel into memory
+let kernel = Elf::load_kernel(KERNEL_FILE_NAME).unwrap();
+debug!(
+    "Kernel entry point: {:#x}, number of pages: {:#x}",
+    kernel.entry(),
+    kernel.num_pages()
+);
+// ...
+----

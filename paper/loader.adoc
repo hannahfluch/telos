@@ -227,4 +227,4 @@ pub(crate) enum LoaderError {
 ----
 
 Each `#[from]` annotation generates a conversion into `LoaderError`, allowing the `?` operator to pass errors back to the caller without hiding their cause.
-For this bring-up milestone, `main` uses `unwrap`, turning initialization failures into panics; a production loader should instead report the error through an available console and halt cleanly.
+For this introduction, `main` uses `unwrap`, turning initialization failures into panics; a production loader should instead report the error through an available console and halt cleanly.
