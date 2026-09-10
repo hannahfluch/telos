@@ -1,5 +1,7 @@
 The next step that the loader completes is loading the kernel ELF's code and data into memory.
-The kernel ELF (Executable and Linkable Format) describes both the program's entry point and how its contents must be arranged in memory.
+The kernel https://refspecs.linuxbase.org/elf/gabi4+/ch5.pheader.html[ELF (Executable and Linkable Format)] describes both the program's entry point and how its contents must be arranged in memory.
+
+It does this using differnt kinds of headers and metadata, which are first parsed using the https://docs.rs/goblin/latest/goblin/[goblin crate] and then interpreted by the loader.
 
 [source,rust]
 ----
@@ -24,7 +26,7 @@ if !elf.is_64
 ----
 
 It walks the ELF program headers, processing nonempty `PT_LOAD` segments: the regions that must be present in memory when execution begins.
-These segments can contain several sections, so the loader does not need to find `.text` or `.data` by name.
+These segments can contain several sections, so the loader does not need to find `.text` (which contains the code) or `.data` by name.
 
 [source,rust]
 ----
@@ -106,9 +108,9 @@ let allocation = boot::allocate_pages(
 
 `Address` requests the exact range specified by the image; loading fails if UEFI cannot reserve it.
 Since this is a basic intro-loader, it does not relocate the executable to another address.
-`LOADER_CODE` records the allocation's purpose in the firmware memory map; it does not establish page-table permissions.
+`LOADER_CODE` records the allocation's purpose in the firmware memory map.
 
-After allocation, a second pass copies each segment's file bytes to `p_paddr` and fills the remainder up to `p_memsz` with zeroes.
+After allocation, each segment's file bytes are copied to `p_paddr` and the remainder is filled up to `p_memsz` with zeroes.
 This initializes regions such as `.bss`, which reserve memory without storing all their zero bytes in the file.
 The temporary file buffer can then be dropped while the loaded image remains allocated.
 
@@ -127,7 +129,7 @@ dest[..size_in_file].copy_from_slice(&data[offset..offset + size_in_file]);
 dest[size_in_file..].fill(0);
 ----
 
-`Elf` returns the entry address, allocation base, and page count.
+`Elf` is a custom struct, which returns the entry address, allocation base, and page count:
 
 [source,rust]
 ----
