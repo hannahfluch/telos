@@ -103,6 +103,33 @@ Their internals are beyond this short introduction; the OSDev Wiki provides furt
 Text output also requires glyph shapes, which PC Screen Font (PSF) stores as a header followed by fixed-size bitmaps.
 PSF1 uses a small header and 8-pixel-wide glyphs; PSF2 records each dimension explicitly, and their magic values distinguish the versions.
 
+Each glyph is a bitmap: for an 8×16 font, its 16 bytes describe the rows from top to bottom, with one byte per row.
+Within a row, the most significant bit represents the leftmost pixel; `1` selects the foreground color and `0` the background color.
+The following example illustrates the encoding of the letter 'A':
+
+[source,text]
+----
+00000000b  byte  0
+00000000b  byte  1
+00000000b  byte  2
+00010000b  byte  3
+00111000b  byte  4
+01101100b  byte  5
+11000110b  byte  6
+11000110b  byte  7
+11111110b  byte  8
+11000110b  byte  9
+11000110b  byte 10
+11000110b  byte 11
+11000110b  byte 12
+00000000b  byte 13
+00000000b  byte 14
+00000000b  byte 15
+----
+
+For this font size, glyph index `i` begins at byte offset `i * 16` within the glyph data after the header.
+The framebuffer writer reads these bits and draws the corresponding pixels in the selected colors.
+
 `parse_psf_font` first reads the file into a temporary `Vec`, identifies its version by the header magic, and checks that all declared glyph data is present.
 It then copies the validated header and glyphs into page-based storage, the below snippet illustrates parsing for PSF1 fonts, PSF2 handling is almost identical:
 
@@ -200,4 +227,4 @@ pub(crate) enum LoaderError {
 ----
 
 Each `#[from]` annotation generates a conversion into `LoaderError`, allowing the `?` operator to pass errors back to the caller without hiding their cause.
-For this bring-up milestone, `main` uses `unwrap`, turning initialization failures into panics; a production loader should instead report the error through an available console and halt cleanly.
+For this introduction, `main` uses `unwrap`, turning initialization failures into panics; a production loader should instead report the error through an available console and halt cleanly.

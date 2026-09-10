@@ -6,14 +6,8 @@ At a high level, the bootloader has to:
 
 . discover the framebuffer and other firmware-provided resources;
 . read and validate the kernel ELF image;
-. allocate physical frames and load its segments;
-. construct the kernel's virtual address space;
+. allocate kernel memory and load its segments;
 . capture the final UEFI memory map and leave boot services; and
 . pass the boot information to `_start` using an agreed calling convention.
 
-=== Higher-Half Kernel
-
-Telos places the kernel in the _higher half_: the upper portion of the virtual address space commonly reserved for privileged code.
-Its linker script adds the virtual offset `0xffff_ffff_8000_0000` to the physical load base `0x0010_0000`, so the first kernel byte is addressed virtually as `0xffff_ffff_8010_0000` while residing near the start of physical memory.
-This arrangement keeps kernel addresses separate from the lower range that can later be assigned to user programs.
-It also fits x86-64's `kernel` code model, whose instructions can address code and static data within the uppermost 2 GiB without loading a full 64-bit address for every reference.
+A more advanced loader should be capable of setting up custom memory management with a virtual address space early on. While this is the common approach, as it is required for loading higher-half kernels, it is unfortuantely out of scope for this introductory paper.

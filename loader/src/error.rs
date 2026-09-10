@@ -10,6 +10,10 @@ pub(crate) enum LoaderError {
     UefiFromStr(#[from] uefi::data_types::FromStrError),
     #[error("Psf error: {0}")]
     Psf(#[from] PsfParseError),
+    #[error("ELF parsing error (goblin): {0}")]
+    Goblin(#[from] goblin::error::Error),
+    #[error("Kernel loading error: {0}")]
+    KernelLoad(#[from] KernelLoadError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -22,4 +26,16 @@ pub(crate) enum PsfParseError {
     InsufficientDataForPSF2,
     #[error("Unrecognized PSF header magic: {0}")]
     InvalidPSFMagic(u32),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum KernelLoadError {
+    #[error("Kernel must be a little-endian x86-64 executable ELF")]
+    InvalidFormat,
+    #[error("Kernel ELF contains no loadable segments")]
+    NoLoadableSegments,
+    #[error("Kernel ELF contains an invalid load segment")]
+    InvalidSegment,
+    #[error("Kernel entry point is not in an executable load segment")]
+    InvalidEntryPoint,
 }

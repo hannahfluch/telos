@@ -18,3 +18,12 @@ include::boot-protocol.adoc[]
 
 == Loader Foundation
 include::loader.adoc[]
+
+== Loading the Kernel Image
+include::kernel-image.adoc[]
+
+TODO:
+
+- set up kernel stack;
+- parse memory map, set up boot info;
+- jump to kernel;

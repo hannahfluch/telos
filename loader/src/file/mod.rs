@@ -7,6 +7,8 @@ use uefi::{
     proto::media::fs::SimpleFileSystem,
 };
 
+pub(crate) mod elf;
+
 /// Read a file from the volume that UEFI used to start this loader.
 pub(crate) fn get_file_data(filename: &'static str) -> Result<Vec<u8>> {
     // Tying lookup to the current image avoids accidentally searching another
