@@ -9,7 +9,6 @@ telos/
 ├── .cargo/config.toml
 ├── framebuf/
 ├── kernel/
-│   ├── linker.ld
 │   ├── src/main.rs
 │   └── x86_64-unknown-telos.json
 ├── loader/src/
@@ -36,8 +35,8 @@ nix develop            # open the development environment
 
 The two programs require different targets because they run in different environments.
 The loader uses Rust's built-in `x86_64-unknown-uefi` target, which produces a PE32+ executable that UEFI can start directly.
-The kernel has no firmware or operating-system runtime to target, so `x86_64-unknown-telos.json` describes its bare-metal environment and invokes the custom linker script.
-That script determines the kernel's memory layout and exports `_start` as its entry point.
+The kernel has no firmware or operating-system runtime to target, so `x86_64-unknown-telos.json` describes its bare-metal environment.
+The linker uses its default memory layout and `_start` as the entry point; no custom linker script is needed.
 
 The workspace also rebuilds `core`, `alloc`, and the compiler built-ins through `.cargo/config.toml`.
 This currently requires a nightly compiler with the Rust sources installed.
