@@ -3,7 +3,7 @@
 
 use framebuf::{color, logger::Logger, raw::write::RawWriter};
 use log::{debug, info};
-use uefi::{boot::PAGE_SIZE, entry, Status};
+use uefi::{Status, boot::PAGE_SIZE, entry};
 
 use crate::file::elf::Elf;
 
@@ -12,9 +12,12 @@ extern crate alloc;
 mod error;
 mod file;
 mod graphics;
+mod mem;
 
 const PSF_FILE_NAME: &str = "font.psf";
 const KERNEL_FILE_NAME: &str = "kernel.elf";
+
+const KERNEL_STACK_SIZE: usize = 16 * 1024; // 16 KiB
 
 #[entry]
 fn main() -> Status {
@@ -42,7 +45,15 @@ fn main() -> Status {
         kernel.num_pages()
     );
 
-    // Setting up a kernel stack is the next stage; stop here for this milestone.
+    let stack = mem::allocate_kernel_stack(KERNEL_STACK_SIZE).unwrap();
+    debug!(
+        "Kernel stack: {:#x}..{:#x}, number of pages: {:#x}",
+        stack.bottom(),
+        stack.top(),
+        stack.num_pages()
+    );
+
+    // Switching to the kernel stack is part of the future kernel handoff.
     loop {
         core::hint::spin_loop();
     }
