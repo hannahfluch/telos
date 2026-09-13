@@ -1,5 +1,5 @@
 [workspace]
-members = [
+members = ["bootinfo",
   "framebuf",
   "kernel",
   "loader"
@@ -13,5 +13,5 @@ spin = { version = "0.12.0", default-features = false, features = ["spin_mutex",
 x86_64 = "0.15.4" 
 log = "0.4.32"
 framebuf = { path = "./framebuf" }
-
+bootinfo = { path = "./bootinfo" }
 

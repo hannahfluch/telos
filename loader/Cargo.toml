@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+bootinfo.workspace = true
 x86_64.workspace = true
 log.workspace = true
 thiserror.workspace = true
