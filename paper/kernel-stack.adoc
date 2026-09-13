@@ -1,0 +1,49 @@
+With the kernel image loaded, the next task is to reserve a separate stack for the kernel's local variables, saved registers, and return addresses.
+For this initial setup, a size of 16 KiB is used, corresponding to four 4 KiB UEFI pages.
+These pages are allocated while boot services are available; the existing stack remains in use until the later kernel handoff.
+
+This is done by adding an `allocate_kernel_stack` helper in `loader/src/mem.rs`.
+The requested byte count is rounded up to whole pages, and `AnyPages` allows the firmware to choose their location:
+
+[source,rust]
+----
+pub(crate) fn allocate_kernel_stack(bytes: usize) -> Result<KernelStack> {
+    assert!(bytes > 0, "kernel stack must have a size bigger than 0!");
+    let num_pages = bytes.div_ceil(PAGE_SIZE);
+    let size = num_pages * PAGE_SIZE;
+    let allocation = boot::allocate_pages(
+        AllocateType::AnyPages, MemoryType::LOADER_DATA, num_pages,
+    )?;
+    let bottom = allocation.as_ptr() as usize;
+    let top = bottom + size;
+
+    Ok(KernelStack { bottom, top, num_pages })
+}
+----
+
+On x86-64, the stack grows toward lower addresses: the initial stack pointer can start at `top`, and a push instruction decreases it before writing into the allocation.
+Since both the allocation base and size are page-aligned, `top` also provides 16-byte alignment before a call.
+The kernel's entry calling convention still needs to be accounted for during the handoff, including the effect of a call's pushed return address on stack alignment.
+
+In main, the stack size is defined as 4 pages (16KB):
+
+[source,rust]
+----
+// ...
+const KERNEL_STACK_SIZE: usize = 16 * 1024;
+// ... inside main:
+// Allocate kernel stack:
+let stack = mem::allocate_kernel_stack(KERNEL_STACK_SIZE).unwrap();
+debug!(
+    "Kernel stack: {:#x}..{:#x}, number of pages: {:#x}",
+    stack.bottom(),
+    stack.top(),
+    stack.num_pages()
+);
+// ... 
+----
+
+The stack bounds and page count are then logged to make the allocation visible during boot.
+As with the font allocation, `LOADER_DATA` identifies their current purpose without permanently reserving them.
+After `ExitBootServices`, this range must be kept reserved by the kernel's memory manager while the stack is in use.
+
