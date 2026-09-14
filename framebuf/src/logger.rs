@@ -37,6 +37,11 @@ impl Logger {
         // Set logger max level to level specified by log features
         log::set_max_level(log::STATIC_MAX_LEVEL);
     }
+
+    /// Remove the writer for transfer to the kernel. Further logs are ignored.
+    pub fn take_writer() -> Option<RawWriter> {
+        without_interrupts(|| LOGGER.writer.lock().take())
+    }
 }
 
 impl From<Level> for Color {
