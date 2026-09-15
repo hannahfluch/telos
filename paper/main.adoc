@@ -27,5 +27,5 @@ include::kernel-stack.adoc[]
 
 TODO:
 
-- parse memory map, set up boot info;
+- leave boot services;
 - jump to kernel;

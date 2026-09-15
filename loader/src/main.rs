@@ -1,6 +1,7 @@
 #![no_main]
 #![no_std]
 
+use bootinfo::BootInfo;
 use framebuf::{color, logger::Logger, raw::write::RawWriter};
 use log::{debug, info};
 use uefi::{Status, boot::PAGE_SIZE, entry};
@@ -53,7 +54,11 @@ fn main() -> Status {
         stack.num_pages()
     );
 
-    // Switching to the kernel stack is part of the future kernel handoff.
+    let _boot_info = BootInfo {
+        writer: Logger::take_writer(),
+    };
+
+    // Exiting boot services, switching stacks, and passing boot_info come next.
     loop {
         core::hint::spin_loop();
     }

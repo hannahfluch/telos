@@ -1,6 +1,8 @@
 The boot protocol is the contract between the loader and the kernel.
 It defines both the machine state at `_start` and the data that the loader passes to it.
 Keeping this contract project-specific lets Telos expose exactly the information its kernel needs without adding a dependency on an existing multiboot standard.
+For now, `BootInfo` contains only an optional framebuffer writer, carrying the framebuffer and font needed for text output.
+Parsing and passing a memory map are deferred until the kernel needs to manage physical memory.
 
 At a high level, the bootloader has to:
 

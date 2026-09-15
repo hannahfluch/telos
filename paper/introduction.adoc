@@ -60,4 +60,14 @@ Reading virtual address `01x`, for example, accesses physical address `01x`.
 
 UEFI boot services (including protocol discovery, file access, and page allocation) remain available until `ExitBootServices` succeeds.
 Any replacement page tables must preserve access to the loader's active code, stack, data, and required firmware buffers until that transition is complete.
+
+UEFI keeps track of physical memory ranges and their uses in a https://uefi.org/specs/UEFI/2.10_A/07_Services_Boot_Services.html#memory-allocation-services[memory map], illustrated schematically below; the actual addresses and sizes depend on the machine.
+
+.Schematic physical memory layout
+image::assets/ram.png[Physical memory divided into firmware, available, ACPI, and reserved regions,align=center,pdfwidth=75%]
+
+After `ExitBootServices`, boot-services memory becomes available for reclamation, while runtime-services memory and reserved regions must remain protected.
+Pages marked `LOADER_CODE` or `LOADER_DATA` must also be retained while still in use, for example by the kernel image or stack; they are not permanently reserved by these types.
+Memory is therefore reclaimed under the kernel's control rather than automatically freed, and allocation must now be handled by the kernel because UEFI boot services are no longer available.
+
 The OSDev Wiki provides more detail in its https://wiki.osdev.org/EFI[UEFI chapter] and https://wiki.osdev.org/Setting_Up_Long_Mode[Setting Up Long Mode] chapter.
