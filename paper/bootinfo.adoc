@@ -1,3 +1,0 @@
-When jumping to the kernel it is essential that it retrieves some information from the loader, like the location of the framebuffer and other boot-information.
-In addition it should have an overview of not just the framebuffer but also the general memory map.
-https://uefi.org/htmlspecs/ACPI_Spec_6_4_html/15_System_Address_Map_Interfaces/uefi-getmemorymap-boot-services-function.html

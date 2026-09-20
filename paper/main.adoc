@@ -25,7 +25,9 @@ include::kernel-image.adoc[]
 == Allocating the Kernel Stack
 include::kernel-stack.adoc[]
 
+== Kernel Handoff
+include::handoff.adoc[]
+
 TODO:
 
-- leave boot services;
 - jump to kernel;
