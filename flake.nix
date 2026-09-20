@@ -69,6 +69,7 @@
               ./kernel
               ./loader
               ./framebuf
+              ./bootinfo
             ];
           };
 

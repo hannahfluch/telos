@@ -1,0 +1,69 @@
+With the kernel image and stack in place, the loader still needs to pass on the resources it prepared.
+For now, this is the framebuffer writer, so the kernel can continue displaying text.
+The custom `bootinfo` crate defines the structure used for this handoff in `bootinfo/src/lib.rs`:
+
+[source,rust]
+----
+#![no_std]
+
+use framebuf::raw::write::RawWriter;
+
+#[derive(Debug)]
+pub struct BootInfo {
+    pub writer: Option<RawWriter>,
+}
+----
+
+Both the loader and kernel depend on this crate, giving them the same definition of `BootInfo`.
+Keeping it in a separate `no_std` crate lets either side use it without depending on the other's implementation.
+
+The structure also needs a place in memory that remains available after leaving the loader's stack.
+As with the kernel stack, a small helper in `loader/src/mem.rs` reserves whole UEFI pages:
+
+[source,rust]
+----
+use bootinfo::BootInfo;
+use core::{mem::size_of, ptr::NonNull};
+
+pub(crate) fn allocate_bootinfo() -> Result<NonNull<BootInfo>> {
+    let num_pages = size_of::<BootInfo>().div_ceil(PAGE_SIZE);
+    let allocation = boot::allocate_pages(
+        AllocateType::AnyPages, MemoryType::LOADER_DATA, num_pages,
+    )?;
+    Ok(allocation.cast::<BootInfo>())
+}
+----
+
+This returns a pointer to enough space for `BootInfo`, rounded up to whole pages.
+The storage is still uninitialized, and the kernel must keep it reserved while in use.
+
+Once all resources are prepared, it is time to leave the firmware's boot environment.
+`ExitBootServices` shuts down boot services: file access, boot protocols, and UEFI memory allocation are no longer available.
+Any cleanup that needs these services must happen before this point.
+The loader continues running on its current stack, but managing the machine's resources is now the operating system's responsibility.
+The allocated pages remain in place; UEFI runtime services remain available separately.
+
+The https://docs.rs/uefi/0.37.0/uefi/boot/fn.exit_boot_services.html[`uefi wrapper`] obtains the final memory map and supplies its key to the firmware, retrying if necessary.
+The returned memory map can be disregarded for now, since this guide does not implement physical-memory management.
+`None` selects the default memory type for the map buffer.
+
+In `main`, boot information is allocated before leaving boot services and is filled in afterward:
+
+[source,rust]
+----
+let boot_info = mem::allocate_bootinfo().unwrap();
+_ = unsafe { boot::exit_boot_services(None) };
+
+// SAFETY: the retained allocation is writable, aligned, and large enough.
+unsafe {
+    boot_info.as_ptr().write(BootInfo {
+        writer: Logger::take_writer(),
+    });
+}
+----
+
+The call to https://doc.rust-lang.org/core/ptr/fn.write.html[`write`] initializes `BootInfo` directly in the reserved memory without trying to drop its uninitialized contents.
+No further allocation is needed, so this can happen after boot services have ended.
+
+`Logger::take_writer()` moves the writer out of the logger and into `BootInfo`.
+The loader's logger no longer has a writer, and the boot information is ready for the kernel handoff.
