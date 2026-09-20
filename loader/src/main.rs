@@ -1,6 +1,8 @@
 #![no_main]
 #![no_std]
 
+use core::arch::asm;
+
 use bootinfo::BootInfo;
 use framebuf::{color, logger::Logger, raw::write::RawWriter};
 use log::{debug, info};
@@ -78,8 +80,28 @@ fn main() -> Status {
         });
     }
 
-    // Switching stacks, and passing boot_info come next.
-    loop {
-        core::hint::spin_loop();
+    // SAFETY: the entry points into the loaded kernel, and boot_info is initialized
+    // in retained memory with exclusive ownership of the writer.
+    //
+    // The kernel stack is writable and its top is 16-byte aligned; call pushes the return address
+    // required for SysV entry alignment.
+    //
+    // RDI carries the first argument.
+    //
+    // Disable interrupts until the kernel installs its own handlers, and clear the direction
+    // flag as required by the ABI.
+    //
+    // All referenced memory remains mapped.
+    unsafe {
+        asm!(
+            "cli",
+            "cld",
+            "mov rsp, {stack_top}",
+            "call {entry}",
+            stack_top = in(reg) stack.top(),
+            entry = in(reg) kernel.entry(),
+            in("rdi") boot_info.as_ptr(),
+            options(noreturn),
+        );
     }
 }

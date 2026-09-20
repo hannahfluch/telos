@@ -5,3 +5,5 @@ edition = "2024"
 
 [dependencies]
 bootinfo.workspace = true
+framebuf.workspace = true
+log.workspace = true
