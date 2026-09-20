@@ -67,3 +67,69 @@ No further allocation is needed, so this can happen after boot services have end
 
 `Logger::take_writer()` moves the writer out of the logger and into `BootInfo`.
 The loader's logger no longer has a writer, and the boot information is ready for the kernel handoff.
+
+=== Entering the Kernel
+
+All that remains is to switch stacks and call the loaded kernel.
+The loader and kernel must agree on a calling convention: where arguments go and what the stack looks like on entry.
+Telos uses the https://gitlab.com/x86-psABIs/x86-64-ABI[System V AMD64 ABI] (`sysv64`).
+For this call, the `BootInfo` pointer goes in `RDI`, and `RSP` must be 16-byte aligned before `call`.
+The instruction pushes an eight-byte return address, so the kernel enters with `RSP + 8` aligned to 16 bytes.
+
+After initializing `BootInfo`, the loader finishes with this block, using `core::arch::asm`:
+
+[source,rust]
+----
+// SAFETY: the kernel entry is loaded, BootInfo is initialized and exclusively
+// owned, and the writable stack top is 16-byte aligned. All remain mapped.
+unsafe {
+    asm!(
+        "cli",
+        "cld",
+        "mov rsp, {stack_top}",
+        "call {entry}",
+        stack_top = in(reg) stack.top(),
+        entry = in(reg) kernel.entry(),
+        in("rdi") boot_info.as_ptr(),
+        options(noreturn),
+    );
+}
+----
+
+`cli` disables maskable interrupts until the kernel installs its own handlers; `cld` clears the direction flag as required by SysV.
+`mov` replaces the loader's stack pointer with the allocated stack top, and `call` enters the kernel with the expected alignment.
+The explicit `RDI` input places the argument in the correct register.
+`options(noreturn)` tells Rust that execution never continues past this block;
+In `kernel/src/main.rs`, `_start` now accepts the boot-information pointer:
+
+[source,rust]
+----
+use core::ptr::NonNull;
+use bootinfo::BootInfo;
+use framebuf::logger::Logger;
+use log::info;
+
+/// # Safety
+/// BootInfo must be initialized, writable, aligned, and exclusively accessible.
+/// Its storage, framebuffer, and font must remain mapped and reserved in use.
+/// Boot services must be exited, interrupts disabled, and the stack SysV-ready.
+// SAFETY: this is the unique kernel entry symbol expected by the linker.
+#[unsafe(no_mangle)]
+pub unsafe extern "sysv64" fn _start(mut boot_info: NonNull<BootInfo>) -> ! {
+    // SAFETY: the loader guarantees valid storage and exclusive access.
+    let writer = unsafe { boot_info.as_mut() }.writer.take();
+    if let Some(writer) = writer {
+        Logger::init(writer);
+        info!("Hello from kernel! :)");
+    }
+
+    loop {
+        core::hint::spin_loop();
+    }
+}
+----
+
+`extern "sysv64"` makes Rust generate the matching entry code; `unsafe` records the requirements the loader must satisfy.
+The kernel takes the writer from `BootInfo` and installs its own logger.
+If no writer was supplied, it simply skips logging.
+The greeting now comes from the kernel, running on its own stack, before it settles into the spin loop.
