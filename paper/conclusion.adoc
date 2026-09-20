@@ -1,0 +1,8 @@
+And with that, the foundation is in place for anyone interested in taking their first steps into operating-system development.
+From here, the project could be extended in several directions:
+
+* *GDT and IDT:* install a kernel-owned Global Descriptor Table and Interrupt Descriptor Table, add exception handlers, and configure hardware interrupts before enabling them.
+* *Physical-memory management:* pass the final memory map through `BootInfo` and track free page frames while preserving reserved regions and allocations still in use. The OSDev Wiki covers allocator designs in https://wiki.osdev.org/Page_Frame_Allocation[Page Frame Allocation].
+* *Paging:* build kernel-owned page tables, choose a virtual address layout, and add page permissions and stack guard pages. See the OSDev Wiki's https://wiki.osdev.org/Paging[Paging] article.
+* *A kernel heap:* use the frame allocator and page mappings to support dynamic allocation after boot services have ended.
+* *Automated testing:* check the handoff, allocators, and exception handlers in QEMU. Philipp Oppermann's https://os.phil-opp.com/testing/[Testing] chapter explains `no_std` tests, serial output, and reporting success or failure through QEMU's exit status. Its runner would need adapting to Telos's UEFI image.

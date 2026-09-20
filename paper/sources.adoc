@@ -1,0 +1,30 @@
+The following collects the references used throughout the paper, together with the suggested reading for continuing the project.
+
+=== Projects and Tutorials
+
+* https://github.com/hannahfluch/telos[Telos] — the accompanying loader and kernel source code.
+* https://github.com/nereusfoundation/nereus-os[Nereus OS] — my operating-system project, which informed the practical work behind this guide.
+* https://github.com/chickensoftware/os[Chicken OS] — an older operating-system project of mine.
+* https://os.phil-opp.com/[Writing an OS in Rust] — Philipp Oppermann's kernel-development blog, including the chapter on https://os.phil-opp.com/testing/[Testing].
+* https://wiki.osdev.org/[OSDev Wiki] — a community reference for operating-system development; the relevant articles are collected below.
+* https://github.com/dreamportdev/Osdev-Notes[Osdev-Notes] – a book covering practical guides on different parts of writing an operating system.
+
+=== OSDev Articles
+
+* https://wiki.osdev.org/EFI[UEFI] and https://wiki.osdev.org/Setting_Up_Long_Mode[Setting Up Long Mode] — the firmware environment and x86-64 execution mode.
+* https://wiki.osdev.org/GOP[GOP], https://wiki.osdev.org/Drawing_In_a_Linear_Framebuffer[Drawing in a Linear Framebuffer], and https://wiki.osdev.org/PC_Screen_Font[PC Screen Font] — graphics output and bitmap fonts.
+* https://wiki.osdev.org/System_V_ABI[System V ABI] — an overview of the calling convention used at the kernel entry.
+* https://wiki.osdev.org/Page_Frame_Allocation[Page Frame Allocation] and https://wiki.osdev.org/Paging[Paging] — physical-memory allocation and page tables.
+
+=== Specifications
+
+* https://uefi.org/specs/UEFI/2.10_A/07_Services_Boot_Services.html[UEFI 2.10A: Boot Services] — firmware services, including the https://uefi.org/specs/UEFI/2.10_A/07_Services_Boot_Services.html#memory-allocation-services[memory allocation services and memory map].
+* https://refspecs.linuxbase.org/elf/gabi4+/ch5.pheader.html[ELF: Program Header] — loadable segments and the program's memory image.
+* https://gitlab.com/x86-psABIs/x86-64-ABI[System V AMD64 ABI] — the x86-64 ABI specification.
+
+=== Rust Documentation
+
+* https://docs.rs/uefi/0.37.0/uefi/[uefi] — Rust interfaces to UEFI services and protocols.
+* https://docs.rs/goblin/latest/goblin/[goblin] — the ELF parser used by the loader.
+* https://docs.rs/log/latest/log/[log] — the logging API used by the loader and kernel.
+* https://doc.rust-lang.org/core/[core] — Rust's core library for `no_std` code, including pointers, memory operations, and inline assembly.

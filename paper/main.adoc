@@ -27,3 +27,9 @@ include::kernel-stack.adoc[]
 
 == Kernel Handoff
 include::handoff.adoc[]
+
+== Conclusion and Next Steps
+include::conclusion.adoc[]
+
+== Sources and Further Reading
+include::sources.adoc[]
