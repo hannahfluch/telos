@@ -1,5 +1,19 @@
 use crate::error::Result;
+use bootinfo::BootInfo;
+use core::{mem::size_of, ptr::NonNull};
 use uefi::boot::{self, AllocateType, MemoryType, PAGE_SIZE};
+
+/// Allocate page-backed storage for boot information before exiting boot services.
+///
+/// The returned storage is uninitialized; write a `BootInfo` before reading it.
+/// The allocation is retained for the kernel, which must keep these pages
+/// reserved while the boot information is in use.
+pub(crate) fn allocate_bootinfo() -> Result<NonNull<BootInfo>> {
+    let num_pages = size_of::<BootInfo>().div_ceil(PAGE_SIZE);
+    let allocation =
+        boot::allocate_pages(AllocateType::AnyPages, MemoryType::LOADER_DATA, num_pages)?;
+    Ok(allocation.cast::<BootInfo>())
+}
 
 /// A page-backed, downward-growing kernel stack.
 ///

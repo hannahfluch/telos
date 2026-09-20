@@ -4,7 +4,10 @@
 use bootinfo::BootInfo;
 use framebuf::{color, logger::Logger, raw::write::RawWriter};
 use log::{debug, info};
-use uefi::{Status, boot::PAGE_SIZE, entry};
+use uefi::{
+    boot::{self, PAGE_SIZE},
+    entry, Status,
+};
 
 use crate::file::elf::Elf;
 
@@ -54,11 +57,28 @@ fn main() -> Status {
         stack.num_pages()
     );
 
-    let _boot_info = BootInfo {
-        writer: Logger::take_writer(),
-    };
+    // Allocate a page for bootinfo (must stay accessible after exiting boot services)
+    let boot_info = mem::allocate_bootinfo().unwrap();
+    debug!("Boot info: {boot_info:?}");
 
-    // Exiting boot services, switching stacks, and passing boot_info come next.
+    debug!("Exiting uefi boot services...");
+
+    // Exit boot services (heap allocation etc. no longer possible)
+    // note: because of the scope of this guide, we disregard the memory map
+    _ = unsafe { boot::exit_boot_services(None) };
+
+    debug!("Successfully exited boot services.");
+    debug!("Constructing boot info and jumping to kernel...");
+
+    // SAFETY: boot_info points to a suitably aligned, writable page allocation
+    // large enough for BootInfo. It remains allocated after exiting boot services.
+    unsafe {
+        boot_info.as_ptr().write(BootInfo {
+            writer: Logger::take_writer(),
+        });
+    }
+
+    // Switching stacks, and passing boot_info come next.
     loop {
         core::hint::spin_loop();
     }
