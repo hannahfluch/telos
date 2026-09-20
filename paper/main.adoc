@@ -27,7 +27,3 @@ include::kernel-stack.adoc[]
 
 == Kernel Handoff
 include::handoff.adoc[]
-
-TODO:
-
-- jump to kernel;
